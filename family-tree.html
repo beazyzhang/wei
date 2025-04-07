@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>韦氏会国公族谱</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background-color: #000;
+            color: #d4a76a;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            width: 100%;
+        }
+        
+        .header h1 {
+            color: #d4a76a;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+        
+        .header h1::before {
+            content: '🏮';
+            margin-right: 15px;
+            font-size: 0.8em;
+        }
+        
+        .header h3 {
+            color: #8d6e63;
+            font-weight: normal;
+            margin-bottom: 0;
+        }
+        
+        /* 添加感叹号注释样式 */
+        .info-icon {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            background-color: #d4a76a;
+            color: #000;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 18px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            vertical-align: middle;
+        }
+        
+        .info-icon:hover {
+            background-color: #c09559;
+            transform: scale(1.1);
+        }
+        
+        .history-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .history-content {
+            background-color: rgba(0, 0, 0, 0.9);
+            border: 2px solid #d4a76a;
+            border-radius: 8px;
+            padding: 25px;
+            width: 80%;
+            max-width: 600px;
+            color: #d4a76a;
+            position: relative;
+            box-shadow: 0 0 20px rgba(212, 167, 106, 0.3);
+        }
+        
+        .history-content h3 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 22px;
+            border-bottom: 1px solid rgba(212, 167, 106, 0.3);
+            padding-bottom: 10px;
+        }
+        
+        .ancestry-chart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(212, 167, 106, 0.3);
+            border-radius: 5px;
+        }
+        
+        .ancestor {
+            text-align: center;
+            padding: 10px 15px;
+            margin: 5px 0;
+            background-color: rgba(212, 167, 106, 0.1);
+            border: 1px solid rgba(212, 167, 106, 0.5);
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            min-width: 200px;
+        }
+        
+        .ancestor-title {
+            display: block;
+            font-size: 12px;
+            font-weight: normal;
+            color: #a88c5d;
+            margin-top: 5px;
+        }
+        
+        .ancestor-line {
+            height: 20px;
+            width: 2px;
+            background-color: #d4a76a;
+        }
+        
+        .current-ancestor {
+            background-color: rgba(212, 167, 106, 0.3);
+            border: 2px solid #d4a76a;
+        }
+        
+        .history-content p {
+            line-height: 1.8;
+            font-size: 16px;
+            text-indent: 2em;
+            margin-bottom: 15px;
+        }
+        
+        .history-content .signature {
+            text-align: right;
+            text-indent: 0;
+            font-style: italic;
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            color: #d4a76a;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .close-btn:hover {
+            color: #c09559;
+        }
+        
+        /* 其他样式保持不变 */
+        
+        .family-rules {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 380px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(212, 167, 106, 0.3);
+            border-radius: 5px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #d4a76a;
+            z-index: 100;
+            max-height: calc(100vh - 93px);
+            text-align: center;
+            overflow-y: auto;
+        }
+        
+        .family-rules h4 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .family-rules p {
+            margin: 0;
+            text-align: center;
+        }
+        
+        .editor-panel {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #d4a76a;
+            border-radius: 5px;
+            background-color: rgba(0, 0, 0, 0.5);
+            margin-bottom: 0;
+            position: absolute;
+            right: 20px;
+            bottom: calc(100vh - 93px - 20px);
+            height: fit-content;
+            z-index: 100;
+        }
+        
+        .editor-panel button {
+            background: #d4a76a;
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        
+        .editor-panel button:hover {
+            background-color: #c09559;
+        }
+        
+        .file-upload {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-upload input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-upload label {
+            background: #d4a76a;
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 5px;
+            display: inline-block;
+            cursor: pointer;
+            width: 68px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        
+        .file-upload label:hover {
+            background-color: #c09559;
+        }
+        
+        #family-tree {
+            width: 100%;
+            height: calc(100vh - 180px); /* 从200px减少到180px，相当于增加20px高度 */
+            border: 2px solid #d4a76a;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 20px; /* 与上方元素保持一定距离 */
+        }
+        
+        .node circle {
+            fill: #f9e8c7;
+            stroke: #d4a76a;
+            stroke-width: 2px;
+            transition: fill 0.3s;
+        }
+        
+        .ancestor-node circle {
+            fill: rgba(249, 232, 199, 0.6);
+            stroke: rgba(212, 167, 106, 0.7);
+            stroke-width: 1.5px;
+        }
+        
+        .ancestor-node text {
+            opacity: 0.8;
+        }
+        
+        .node:hover circle {
+            fill: #e6d0a9;
+        }
+        
+        .ancestor-node:hover circle {
+            fill: rgba(230, 208, 169, 0.7);
+        }
+        
+        .node text {
+            font: 12px 'Noto Serif SC';
+            pointer-events: none;
+        }
+        
+        .link {
+            fill: none;
+            stroke: #8d6e63;
+            stroke-width: 2px;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: #d4a76a;
+            border: 1px solid #d4a76a;
+            border-radius: 5px;
+            padding: 10px;
+            pointer-events: none;
+            opacity: 0;
+            max-width: 250px;
+            transition: opacity 0.3s;
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: #d4a76a;
+            border: 1px solid #d4a76a;
+            border-radius: 5px;
+            padding: 5px 0;
+            z-index: 1000;
+        }
+        
+        .context-menu div {
+            padding: 8px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .context-menu div:hover {
+            background: rgba(212, 167, 106, 0.2);
+        }
+        
+        .generation-label {
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="family-rules">
+        <h4>合族公约八条</h4>
+        <p>一、本族同人应遵守国家法律。二、不得贪污盗窃、不得奸淫调戏妇女。三、不得吸毒、赌博。四、不得诬告陷害他人。五、不得欺压和打骂他人。六、不得败坏族望。七、要尊老爱幼、睦族和邻。八、不准擅自删改族谱内记载。</p>
+    </div>
+    
+    <div class="header-container">
+        <div class="header">
+            <h1>韦氏会国公族谱</h1>
+            <h3>传承有序 尊祖敬宗<span class="info-icon" id="historyInfo">!</span></h3>
+        </div>
+    </div>
+    
+    <!-- 添加历史信息模态框 -->
+    <div class="history-modal" id="historyModal">
+        <div class="history-content">
+            <span class="close-btn" id="closeModal">&times;</span>
+            <h3>会国公史略</h3>
+            <div class="ancestry-chart">
+                <div class="ancestor">韦应邦（曾祖父）<br><span class="ancestor-title">南宋钦点武状元，在南京立应天府，元朝山东提督</span></div>
+                <div class="ancestor-line"></div>
+                <div class="ancestor">韦彦春（祖父）<br><span class="ancestor-title">元朝兵部剌郎，将军<br>奉旨领八千将士镇守五羊城（广州），立南雄府</span></div>
+                <div class="ancestor-line"></div>
+                <div class="ancestor">韦胜登（父亲）<br><span class="ancestor-title">武官</span></div>
+                <div class="ancestor-line"></div>
+                <div class="ancestor current-ancestor">韦会国<br><span class="ancestor-title">明朝兵部尚书，正二品，大将军</span></div>
+            </div>
+            <p>韦会国系明朝兵部尚书，正二品，大将军，武官胜登公之子。</p>
+            <p>于明朝洪武十一年（公元 1378 年）戊午年五月廿七日寅时在南雄出生。其祖父韦彦春是元朝兵部剌郎，将军。奉旨领八千将士镇守五羊城（广州），立南雄府，落籍南雄西街。曾祖父韦应邦是南宋钦点武状元，在南京立应天府，元朝山东提督。上朝会国公直系宗亲，有汉朝父子丞相韦贤、韦玄成，随朝民部尚书韦挺，唐朝尚书右丞相韦挺，其子韦待价正二品文昌右丞相。会国公上承先祖血脉，于明洪武廿六年（时年十六岁）恩授卫千总武官，奉旨从南雄领兵一千，联二十四姓守龙水城县（今罗定市），洪武廿八年回南雄接家眷到龙水仪凤岗（罗定分界石排村，屋地形：犀牛喷水）定居，置田三石六斗。宣德四年（1429 年，五十一岁）中武进士，入朝（北京）官升正二品兵部尚书（相当现在的国防部长）大将军，夫人李氏、杨氏，生九子：滨亮（阳春）、海亮（云浮）、法亮（罗定）、汉亮（南海）、渭亮（岑溪）、江亮（福建）、河亮（新会）、潮亮（梅州）、渭亮（九江），均为武官。会国公在朝廷任职廿八年，晚年回罗定分界居住。终于明朝成化六年（1470 年）十月初九日，阳寿九十三岁。初葬水摆朝珠（猪）岭（山形：猛虎擒猪），至清光绪甲申年十二月二十日辰时迁葬罗镜仪凤桥，地形为天鹅孵蛋，在法亮将军墓右侧，与夫人李氏同穴，坐庚向甲兼申寅。</p>
+            <p>会国公后裔分布在国内外有数十万人。</p>
+            <p class="signature">十八世裔孙 韦永球 撰稿</p>
+            <p class="signature">廿四世裔孙 韦章建</p>
+        </div>
+    </div>
+    <div class="editor-panel">
+        <button id="add-generation-btn">新建世代</button>
+        <button id="save-data-btn">保存数据</button>
+        <button id="export-data-btn">导出数据</button>
+        <div class="file-upload">
+            <label for="importFile">导入数据</label>
+            <input type="file" id="importFile" accept=".json">
+        </div>
+    </div>
+    
+    <div id="family-tree"></div>
+    
+     <script>
+        // 初始数据
+        let familyData = JSON.parse(localStorage.getItem('familyData')) || {
+            name: '韦应邦(曾祖)',
+            birth: "南宋",
+            intro: "南宋钦点武状元，在南京立应天府，元朝山东提督",
+            isAncestor: true,
+            children: [{
+                name: '韦彦春(祖父)',
+                birth: "元朝",
+                intro: "元朝兵部剌郎，将军，奉旨领八千将士镇守五羊城（广州），立南雄府",
+                isAncestor: true,
+                children: [{
+                    name: '韦胜登(父亲)',
+                    birth: "元末明初",
+                    intro: "武官",
+                    isAncestor: true,
+                    children: [
+                        {
+                            name: '韦会文(兄)',
+                            birth: "明朝",
+                            intro: "韦会国之兄",
+                            isAncestor: true,
+                            children: []
+                        },
+                        {
+                            name: '韦会国(始祖)',
+                            birth: "明朝洪武十一年（公元1378年）",
+                            spouse: "李氏、杨氏",
+                            intro: "明朝兵部尚书，正二品，大将军",
+                            children: []
+                        },
+                        {
+                            name: '韦会武(弟)',
+                            birth: "明朝",
+                            intro: "韦会国之弟",
+                            isAncestor: true,
+                            children: []
+                        }
+                    ]
+                }]
+            }]
+        };
+        
+        // 全局变量
+        let svg, g, zoom;
+        let width, height;
+        let tree;
+        let tooltip;
+        let contextMenu;
+        const chineseNumbers = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", 
+                              "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十"];
+        
+        // DOM 加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化事件监听
+            initEventListeners();
+            
+            // 初始化树图
+            initializeTree();
+            
+            // 窗口大小变化时重新初始化
+            window.addEventListener('resize', debounce(initializeTree, 250));
+        });
+        
+        // 初始化事件监听
+        function initEventListeners() {
+            document.getElementById('add-generation-btn').addEventListener('click', addGeneration);
+            document.getElementById('save-data-btn').addEventListener('click', saveData);
+            document.getElementById('export-data-btn').addEventListener('click', exportData);
+            document.getElementById('importFile').addEventListener('change', importData);
+            
+            // 添加历史信息点击事件
+            document.getElementById('historyInfo').addEventListener('click', function() {
+                document.getElementById('historyModal').style.display = 'flex';
+            });
+            
+            document.getElementById('closeModal').addEventListener('click', function() {
+                document.getElementById('historyModal').style.display = 'none';
+            });
+            
+            // 点击模态框外部关闭
+            document.getElementById('historyModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+            
+            // 点击页面任意位置关闭上下文菜单
+            document.addEventListener('click', function() {
+                hideContextMenu();
+            });
+        }
+        
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+        
+        // 初始化树图
+        function initializeTree() {
+            // 清除现有内容
+            d3.select("#family-tree").html("");
+            
+            // 获取容器尺寸
+            const container = document.getElementById('family-tree');
+            width = container.clientWidth;
+            height = container.clientHeight;
+            
+            // 创建SVG
+            svg = d3.select("#family-tree")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+            
+            // 添加缩放功能
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 3])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            // 创建主要图形组
+            g = svg.append("g");
+            
+            // 创建树布局
+            tree = d3.tree()
+                .nodeSize([80, 120])
+                .separation((a, b) => a.parent === b.parent ? 1.5 : 2);
+            
+            // 创建提示框
+            tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip");
+            
+            // 渲染树
+            updateTree();
+        }
+        
+        // 更新树图
+        function updateTree() {
+            // 处理数据
+            const root = d3.hierarchy(familyData);
+            
+            // 保留折叠状态
+            root.descendants().forEach(d => {
+                if (d.data.collapsed) {
+                    d._children = d.children;
+                    d.children = null;
+                }
+            });
+            
+            // 计算节点位置
+            tree(root);
+            
+            // 清除现有内容
+            g.selectAll("*").remove();
+            
+            // 绘制连接线
+            drawLinks(root);
+            
+            // 绘制节点
+            drawNodes(root);
+            
+            // 添加代际标识
+            addGenerationLabels(root);
+            
+            // 居中显示树
+            centerTree(root);
+        }
+        
+        // 绘制连接线
+        function drawLinks(root) {
+            g.selectAll(".link")
+                .data(root.links())
+                .enter()
+                .append("path")
+                .attr("class", "link")
+                .attr("d", d => {
+                    return `M${d.source.x},${d.source.y}
+                            L${d.source.x},${(d.source.y + d.target.y) / 2}
+                            L${d.target.x},${(d.source.y + d.target.y) / 2}
+                            L${d.target.x},${d.target.y}`;
+                });
+        }
+        
+        // 绘制节点
+        function drawNodes(root) {
+            const nodes = g.selectAll(".node")
+                .data(root.descendants())
+                .enter()
+                .append("g")
+                .attr("class", d => d.data.isAncestor ? "node ancestor-node" : "node")
+                .attr("transform", d => `translate(${d.x},${d.y})`)
+                .on("click", toggleChildren)
+                .on("contextmenu", showContextMenu)
+                .on("mouseover", showTooltip)
+                .on("mouseout", hideTooltip);
+            
+            // 绘制节点圆形
+            nodes.append("circle")
+                .attr("r", 30)
+                .attr("fill", d => d.data.isAncestor ? "rgba(249, 232, 199, 0.6)" : "#f9e8c7")
+                .attr("stroke", d => d.data.isAncestor ? "rgba(212, 167, 106, 0.7)" : "#d4a76a");
+            
+            // 为收起的节点添加特殊标识
+            nodes.filter(d => d._children)
+                .append("text")
+                .attr("class", "collapsed-indicator")
+                .text("+")
+                .attr("x", 0)
+                .attr("y", 40)
+                .attr("dy", "0.3em")
+                .attr("text-anchor", "middle")
+                .attr("fill", "#d4a76a")
+                .attr("font-size", "20px");
+            
+            // 绘制节点文本
+            nodes.append("text")
+                .text(d => d.data.name)
+                .attr("dy", "0.3em")
+                .attr("text-anchor", "middle")
+                .attr("fill", d => d.data.isAncestor ? "rgba(0, 0, 0, 0.6)" : "#000");
+        }
+        
+        // 添加代际标识
+        function addGenerationLabels(root) {
+            const maxDepth = d3.max(root.descendants(), d => d.depth);
+            
+            // 找到每个深度的节点
+            const depthNodes = {};
+            root.descendants().forEach(node => {
+                if (!depthNodes[node.depth]) {
+                    depthNodes[node.depth] = [];
+                }
+                depthNodes[node.depth].push(node);
+            });
+            
+            // 为每个深度添加代际标识
+            for (let i = 0; i <= maxDepth; i++) {
+                if (depthNodes[i] && depthNodes[i].length > 0) {
+                    if (i === 0) {
+                        // 第一代的节点
+                        addFirstGenerationLabel(depthNodes[i][0]);
+                    } else if (i === 1) {
+                        // 第二代的节点
+                        addSecondGenerationLabel(depthNodes[0][0]);
+                    } else {
+                        // 其他代的标识处理逻辑
+                        addOtherGenerationLabels(i, depthNodes[i-1]);
+                    }
+                }
+            }
+        }
+        
+        // 添加第一代标识
+        function addFirstGenerationLabel(node) {
+            g.append("text")
+                .attr("class", "generation-label")
+                .text("一世")
+                .attr("x", node.x)
+                .attr("y", node.y - 45)
+                .attr("dy", "0.3em")
+                .attr("text-anchor", "middle")
+                .attr("fill", "#d4a76a")
+                .attr("font-size", "16px");
+        }
+        
+        // 添加第二代标识
+        function addSecondGenerationLabel(firstGenNode) {
+            g.append("text")
+                .attr("class", "generation-label")
+                .text("二世")
+                .attr("x", firstGenNode.x)
+                .attr("y", firstGenNode.y + 75)
+                .attr("dy", "0.3em")
+                .attr("text-anchor", "middle")
+                .attr("fill", "#d4a76a")
+                .attr("font-size", "16px");
+        }
+        
+        // 添加其他代际标识
+        function addOtherGenerationLabels(generation, parentNodes) {
+            // 找到当前深度中有子节点且已展开的节点
+            const expandedParents = parentNodes.filter(node => 
+                node.children && node.children.length > 0
+            );
+            
+            // 为每个展开的父节点添加下一代标识
+            expandedParents.forEach(parent => {
+                g.append("text")
+                    .attr("class", "generation-label")
+                    .text(chineseNumbers[generation] + "世")
+                    .attr("x", parent.x)
+                    .attr("y", parent.y + 75)
+                    .attr("dy", "0.3em")
+                    .attr("text-anchor", "middle")
+                    .attr("fill", "#d4a76a")
+                    .attr("font-size", "16px");
+            });
+        }
+        
+        // 居中显示树
+        function centerTree(root) {
+            const rootNode = root.descendants()[0];
+            const initialTransform = d3.zoomIdentity
+                .translate(width / 2 - rootNode.x, 100 - rootNode.y)
+                .scale(0.8);
+            
+            svg.call(zoom.transform, initialTransform);
+        }
+        
+        // 折叠/展开子节点
+        function toggleChildren(event, d) {
+            event.stopPropagation();
+            
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+                d.data.collapsed = true;
+            } else if (d._children) {
+                d.children = d._children;
+                d._children = null;
+                d.data.collapsed = false;
+            }
+            updateTree();
+        }
+        
+        // 显示提示框
+        function showTooltip(event, d) {
+            let content = `<strong>${d.data.name}</strong>`;
+            
+            if (d.data.birth && d.data.birth !== '待补充') {
+                content += `<br/>生辰：${d.data.birth}`;
+            }
+            
+            if (d.data.spouse && d.data.spouse !== '待补充' && !d.data.isSpouse) {
+                content += `<br/>配偶：${d.data.spouse}`;
+            }
+            
+            if (d.data.intro && d.data.intro !== '待补充') {
+                content += `<br/>简介：${d.data.intro}`;
+            }
+            
+            if (d.data.residence && d.data.residence !== '待补充') {
+                content += `<br/>居住地：${d.data.residence}`;
+            }
+            
+            tooltip.html(content)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px")
+                .style("opacity", 0.9);
+        }
+        
+        // 隐藏提示框
+        function hideTooltip() {
+            tooltip.style("opacity", 0);
+        }
+        
+        // 显示右键菜单
+        function showContextMenu(event, d) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // 移除现有菜单
+            hideContextMenu();
+            
+            // 创建菜单
+            contextMenu = d3.select("body")
+                .append("div")
+                .attr("class", "context-menu")
+                .style("left", event.pageX + "px")
+                .style("top", event.pageY + "px");
+            
+            // 添加菜单项
+            const options = [
+                { text: '添加成员', action: () => addMemberPrompt(d.data.name) },
+                { text: '添加配偶', action: () => addSpouseToMember(d.data.name) },
+                { text: '修改成员', action: () => editMember(d.data.name) },
+                { text: '删除成员', action: () => confirmDeleteMember(d.data.name) }
+            ];
+            
+            options.forEach(option => {
+                contextMenu.append("div")
+                    .text(option.text)
+                    .on("click", (e) => {
+                        e.stopPropagation();
+                        hideContextMenu();
+                        option.action();
+                    });
+            });
+        }
+        
+        // 隐藏右键菜单
+        function hideContextMenu() {
+            d3.selectAll(".context-menu").remove();
+        }
+        
+        // 添加成员提示
+        function addMemberPrompt(parentName) {
+            const memberName = prompt("请输入成员姓名：");
+            if (memberName) {
+                const birth = prompt("请输入生辰：");
+                const spouse = prompt("请输入配偶：");
+                const intro = prompt("请输入简介：");
+                const residence = prompt("请输入居住地：");
+                
+                addMember(parentName, { 
+                    name: memberName, 
+                    birth: birth || "待补充",
+                    spouse: spouse || "待补充",
+                    intro: intro || "待补充",
+                    residence: residence || "待补充"
+                });
+            }
+        }
+        
+        // 确认删除成员
+        function confirmDeleteMember(nodeName) {
+            if (confirm(`确定要删除"${nodeName}"吗？`)) {
+                deleteMember(nodeName);
+            }
+        }
+        
+        // 添加成员
+        function addMember(parentName, newMember) {
+            const addToParent = (node) => {
+                if (node.name === parentName) {
+                    if (!node.children) {
+                        node.children = [];
+                    }
+                    node.children.push(newMember);
+                    return true;
+                }
+                if (node.children) {
+                    for (let child of node.children) {
+                        if (addToParent(child)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            };
+            
+            if (addToParent(familyData)) {
+                updateTree();
+                saveData(false);
+            } else {
+                alert(`未找到父辈成员: ${parentName}`);
+            }
+        }
+        
+        // 添加配偶
+        function addSpouseToMember(nodeName) {
+            const findAndAddSpouse = (node) => {
+                if (node.name === nodeName) {
+                    const currentSpouse = node.spouse || '待补充';
+                    const newSpouse = prompt("请输入配偶姓名:", currentSpouse);
+                    
+                    if (newSpouse !== null) {
+                        node.spouse = newSpouse;
+                        return true;
+                    }
+                    return false;
+                }
+                if (node.children) {
+                    for (let child of node.children) {
+                        if (findAndAddSpouse(child)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            };
+            
+            if (findAndAddSpouse(familyData)) {
+                updateTree();
+                saveData(false);
+            }
+        }
+        
+        // 修改成员信息
+        function editMember(nodeName) {
+            const findAndEdit = (node) => {
+                if (node.name === nodeName) {
+                    const newName = prompt("修改姓名:", node.name);
+                    if (newName) {
+                        node.name = newName;
+                        node.birth = prompt("修改生辰:", node.birth || "待补充");
+                        node.spouse = prompt("修改配偶:", node.spouse || "待补充");
+                        node.intro = prompt("修改简介:", node.intro || "待补充");
+                        node.residence = prompt("修改居住地:", node.residence || "待补充");
+                        return true;
+                    }
+                    return false;
+                }
+                if (node.children) {
+                    for (let child of node.children) {
+                        if (findAndEdit(child)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            };
+            
+            if (findAndEdit(familyData)) {
+                updateTree();
+                saveData(false);
+            }
+        }
+        
+        // 删除成员
+        function deleteMember(nodeName) {
+            const findAndDelete = (node) => {
+                if (node.children) {
+                    for (let i = 0; i < node.children.length; i++) {
+                        if (node.children[i].name === nodeName) {
+                            node.children.splice(i, 1);
+                            return true;
+                        }
+                    }
+                    for (let child of node.children) {
+                        if (findAndDelete(child)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            };
+            
+            if (findAndDelete(familyData)) {
+                updateTree();
+                saveData(false);
+            }
+        }
+        
+        // 添加新世代
+        function addGeneration() {
+            const parentName = prompt("请输入父辈姓名：");
+            if (parentName) {
+                const memberName = prompt("请输入成员姓名：");
+                if (memberName) {
+                    const birth = prompt("请输入生辰：");
+                    const spouse = prompt("请输入配偶：");
+                    const intro = prompt("请输入简介：");
+                    const residence = prompt("请输入居住地：");
+                    
+                    addMember(parentName, { 
+                        name: memberName, 
+                        birth,
+                        spouse,
+                        intro,
+                        residence
+                    });
+                }
+            }
+        }
+        
+        // 保存数据
+        function saveData(showAlert = true) {
+            try {
+                localStorage.setItem('familyData', JSON.stringify(familyData));
+                if (showAlert) alert("数据已保存");
+            } catch (e) {
+                alert("保存失败：" + e.message);
+            }
+        }
+        
+        // 导出数据
+        function exportData() {
+            try {
+                const dataStr = JSON.stringify(familyData, null, 2);
+                const blob = new Blob([dataStr], {type: "application/json"});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '韦氏族谱数据.json';
+                a.click();
+                URL.revokeObjectURL(url); // 释放URL对象
+            } catch (e) {
+                alert("导出失败：" + e.message);
+            }
+        }
+        
+        // 导入数据
+        function importData() {
+            const fileInput = document.getElementById('importFile');
+            const file = fileInput.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        // 验证数据格式
+                        if (!data.name) {
+                            throw new Error("数据格式不正确");
+                        }
+                        familyData = data;
+                        updateTree();
+                        saveData(false);
+                        alert("数据导入成功");
+                    } catch (error) {
+                        alert("导入失败，文件格式错误: " + error.message);
+                    }
+                };
+                reader.onerror = function() {
+                    alert("读取文件时发生错误");
+                };
+                reader.readAsText(file);
+            }
+        }
+    </script>
+</body>
+</html>

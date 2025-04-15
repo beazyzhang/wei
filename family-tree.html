@@ -92,6 +92,7 @@
             z-index: 1000;
             justify-content: center;
             align-items: center;
+            overflow-y: auto; /* 允许整个模态框滚动 */
         }
         
         .history-content {
@@ -103,15 +104,35 @@
             max-width: 600px;
             position: relative;
             box-shadow: 0 0 20px rgba(212, 167, 106, 0.3);
+            max-height: 80vh; /* 限制最大高度 */
+            overflow-y: auto; /* 允许内容滚动 */
+            margin: 20px 0;
         }
         
-        .history-content h3 {
-            text-align: center;
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 22px;
-            border-bottom: 1px solid rgba(212, 167, 106, 0.3);
+        .history-header {
+            position: sticky;
+            top: 0;
+            background-color: rgba(0, 0, 0, 0.9);
             padding-bottom: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(212, 167, 106, 0.3);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .history-header h3 {
+            margin: 0;
+            font-size: 22px;
+            flex-grow: 1;
+            text-align: center;
+        }
+        
+        .close-btn {
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
         }
         
         .history-content p {
@@ -127,13 +148,6 @@
             font-style: italic;
             margin-top: 20px;
             margin-bottom: 5px;
-        }
-        
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 24px;
         }
         
         /* 族规和编辑面板 */
@@ -168,6 +182,23 @@
         .family-rules p {
             margin: 0;
             text-align: center;
+        }
+        
+        .rules-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .rules-close-btn {
+            cursor: pointer;
+            font-size: 16px;
+            color: #d4a76a;
+        }
+        
+        .rules-close-btn:hover {
+            color: #c09559;
         }
         
         .editor-panel {
@@ -337,6 +368,7 @@
             .history-content {
                 width: 90%;
                 padding: 15px;
+                max-height: 70vh;
             }
             
             .history-content h3 {
@@ -345,6 +377,11 @@
             
             .history-content p {
                 font-size: 14px;
+            }
+            
+            /* 族规隐藏时的树图样式 */
+            #family-tree.expanded {
+                height: calc(100vh - 200px);
             }
         }
         
@@ -371,8 +408,11 @@
     </style>
 </head>
 <body>
-    <div class="family-rules">
-        <h4>合族公约八条</h4>
+    <div class="family-rules" id="family-rules">
+        <div class="rules-header">
+            <h4>合族公约八条</h4>
+            <span class="rules-close-btn" id="rules-close-btn">&times;</span>
+        </div>
         <p>一、本族同人应遵守国家法律。二、不得贪污盗窃、不得奸淫调戏妇女。三、不得吸毒、赌博。四、不得诬告陷害他人。五、不得欺压和打骂他人。六、不得败坏族望。七、要尊老爱幼、睦族和邻。八、不准擅自删改族谱内记载。</p>
     </div>
     
@@ -386,8 +426,10 @@
     <!-- 添加历史信息模态框 -->
     <div class="history-modal" id="historyModal">
         <div class="history-content">
-            <span class="close-btn" id="closeModal">&times;</span>
-            <h3>会国公史略</h3>
+            <div class="history-header">
+                <h3>会国公史略</h3>
+                <span class="close-btn" id="closeModal">&times;</span>
+            </div>
             <p>韦会国系明朝兵部尚书，正二品，大将军，武官胜登公之子。</p>
             <p>于明朝洪武十一年（公元 1378 年）戊午年五月廿七日寅时在南雄出生。其祖父韦彦春是元朝兵部剌郎，将军。奉旨领八千将士镇守五羊城（广州），立南雄府，落籍南雄西街。曾祖父韦应邦是南宋钦点武状元，在南京立应天府，元朝山东提督。上朝会国公直系宗亲，有汉朝父子丞相韦贤、韦玄成，随朝民部尚书韦挺，唐朝尚书右丞相韦挺，其子韦待价正二品文昌右丞相。会国公上承先祖血脉，于明洪武廿六年（时年十六岁）恩授卫千总武官，奉旨从南雄领兵一千，联二十四姓守龙水城县（今罗定市），洪武廿八年回南雄接家眷到龙水仪凤岗（罗定分界石排村，屋地形：犀牛喷水）定居，置田三石六斗。宣德四年（1429 年，五十一岁）中武进士，入朝（北京）官升正二品兵部尚书（相当现在的国防部长）大将军，夫人李氏、杨氏，生九子：滨亮（阳春）、海亮（云浮）、法亮（罗定）、汉亮（南海）、渭亮（岑溪）、江亮（福建）、河亮（新会）、潮亮（梅州）、渭亮（九江），均为武官。会国公在朝廷任职廿八年，晚年回罗定分界居住。终于明朝成化六年（1470 年）十月初九日，阳寿九十三岁。初葬水摆朝珠（猪）岭（山形：猛虎擒猪），至清光绪甲申年十二月二十日辰时迁葬罗镜仪凤桥，地形为天鹅孵蛋，在法亮将军墓右侧，与夫人李氏同穴，坐庚向甲兼申寅。</p>
             <p>会国公后裔分布在国内外有数十万人。</p>
@@ -488,12 +530,12 @@
                 }
             });
             
-            // 点击史略内容区域内任意位置关闭（移动设备友好）
-            document.querySelector('.history-content').addEventListener('click', function(e) {
-                // 如果不是点击链接或其他交互元素
-                if (e.target.tagName !== 'A' && e.target.id !== 'closeModal') {
-                    document.getElementById('historyModal').style.display = 'none';
-                }
+            // 族规关闭按钮事件
+            document.getElementById('rules-close-btn').addEventListener('click', function() {
+                document.getElementById('family-rules').style.display = 'none';
+                document.getElementById('family-tree').classList.add('expanded');
+                // 重新初始化树图以适应新的大小
+                initializeTree();
             });
             
             document.addEventListener('click', hideContextMenu);

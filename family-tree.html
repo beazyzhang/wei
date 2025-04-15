@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>韦氏会国公族谱</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500&display=swap" rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -13,6 +13,7 @@
             color: #d4a76a;
             margin: 0;
             padding: 20px;
+            overflow-x: hidden;
         }
         
         /* 头部样式 */
@@ -283,6 +284,90 @@
         .generation-label {
             pointer-events: none;
         }
+        
+        /* 添加移动设备适配样式 */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .header-container {
+                order: 1;
+                margin-bottom: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .header h3 {
+                font-size: 0.9rem;
+            }
+            
+            .editor-panel {
+                order: 2;
+                position: relative;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                margin-top: 0;
+                margin-bottom: 10px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .family-rules {
+                order: 3;
+                position: relative;
+                top: 0;
+                left: 0;
+                width: calc(100% - 20px);
+                margin-bottom: 10px;
+                max-height: none;
+            }
+            
+            #family-tree {
+                order: 4;
+                height: calc(100vh - 280px);
+                margin-top: 10px;
+            }
+            
+            .history-content {
+                width: 90%;
+                padding: 15px;
+            }
+            
+            .history-content h3 {
+                font-size: 18px;
+            }
+            
+            .history-content p {
+                font-size: 14px;
+            }
+        }
+        
+        /* 针对超小屏幕设备的额外调整 */
+        @media screen and (max-width: 480px) {
+            .editor-panel button, .file-upload button {
+                width: 80px;
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            
+            .file-upload {
+                width: 80px;
+            }
+            
+            .node circle {
+                r: 25;
+            }
+            
+            .node text {
+                font-size: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -386,19 +471,55 @@
             document.getElementById('export-data-btn').addEventListener('click', exportData);
             document.getElementById('importFile').addEventListener('change', importData);
             
-            document.getElementById('historyInfo').addEventListener('click', () => {
+            document.getElementById('historyInfo').addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止冒泡
                 document.getElementById('historyModal').style.display = 'flex';
             });
             
-            document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('closeModal').addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止冒泡
                 document.getElementById('historyModal').style.display = 'none';
             });
             
+            // 点击模态框背景关闭
             document.getElementById('historyModal').addEventListener('click', function(e) {
-                if (e.target === this) this.style.display = 'none';
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+            
+            // 点击史略内容区域内任意位置关闭（移动设备友好）
+            document.querySelector('.history-content').addEventListener('click', function(e) {
+                // 如果不是点击链接或其他交互元素
+                if (e.target.tagName !== 'A' && e.target.id !== 'closeModal') {
+                    document.getElementById('historyModal').style.display = 'none';
+                }
             });
             
             document.addEventListener('click', hideContextMenu);
+            
+            // 添加触摸设备长按支持
+            if ('ontouchstart' in window) {
+                let touchTimer;
+                
+                document.addEventListener('touchstart', function(e) {
+                    const node = e.target.closest('.node');
+                    if (node) {
+                        touchTimer = setTimeout(function() {
+                            const d = d3.select(node).datum();
+                            showContextMenu(e, d);
+                        }, 500);
+                    }
+                });
+                
+                document.addEventListener('touchend', function() {
+                    clearTimeout(touchTimer);
+                });
+                
+                document.addEventListener('touchmove', function() {
+                    clearTimeout(touchTimer);
+                });
+            }
         }
         
         // 防抖函数
@@ -423,15 +544,18 @@
                 .attr("width", width)
                 .attr("height", height);
             
+            // 调整移动设备的缩放范围
+            const isMobile = window.innerWidth <= 768;
             zoom = d3.zoom()
-                .scaleExtent([0.1, 3])
+                .scaleExtent([isMobile ? 0.2 : 0.1, isMobile ? 2 : 3])
                 .on("zoom", (event) => g.attr("transform", event.transform));
             
             svg.call(zoom);
             g = svg.append("g");
             
+            // 调整移动设备的节点间距
             tree = d3.tree()
-                .nodeSize([80, 120])
+                .nodeSize([isMobile ? 60 : 80, isMobile ? 100 : 120])
                 .separation((a, b) => a.parent === b.parent ? 1.5 : 2);
             
             tooltip = d3.select("body").append("div").attr("class", "tooltip");
@@ -476,6 +600,9 @@
         
         // 绘制节点
         function drawNodes(root) {
+            const isMobile = window.innerWidth <= 768;
+            const nodeRadius = isMobile ? 25 : 30;
+            
             const nodes = g.selectAll(".node")
                 .data(root.descendants())
                 .enter()
@@ -487,7 +614,7 @@
                 .on("mouseover", showTooltip)
                 .on("mouseout", hideTooltip);
             
-            nodes.append("circle").attr("r", 30);
+            nodes.append("circle").attr("r", nodeRadius);
             
             nodes.filter(d => d._children)
                 .append("text")
@@ -611,11 +738,16 @@
             
             hideContextMenu();
             
+            // 检测是否为触摸设备的长按
+            const isTouchEvent = event.type === 'touchstart' || event.pointerType === 'touch';
+            const pageX = isTouchEvent ? event.touches[0].pageX : event.pageX;
+            const pageY = isTouchEvent ? event.touches[0].pageY : event.pageY;
+            
             contextMenu = d3.select("body")
                 .append("div")
                 .attr("class", "context-menu")
-                .style("left", event.pageX + "px")
-                .style("top", event.pageY + "px");
+                .style("left", pageX + "px")
+                .style("top", pageY + "px");
             
             const options = [
                 { text: '添加成员', action: () => addMemberPrompt(d.data.name) },
